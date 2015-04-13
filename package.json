@@ -1,0 +1,17 @@
+{
+  "name": "timee",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "dependencies": {
+    "python-shell": "^0.0.3",
+    "temboo": "^2.8.0",
+    "express": "^4.12.3"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "John Farrell",
+  "license": "ISC"
+}
