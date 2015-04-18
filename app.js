@@ -1,12 +1,9 @@
+
 var express = require('express');
 var Forecast = require('forecast')
 var PythonShell = require('python-shell');
 var schedule = require('node-schedule');
 var app = express();
-var status = {}
-
-
-
 
 
 var server = app.listen(3000, function () {
@@ -18,16 +15,14 @@ var server = app.listen(3000, function () {
 
 /////  INFO FROM PHONE  /////
 var phoneInfo;
-
 app.get('/info/:info', function (request, response) {
-	phoneInfo  = request.params.name;
+	phoneInfo  = request.params.info;
 	//send a response to the client:
 	response.writeHead(200, {'Content-Type': 'text/html'});
 	response.write("You sent me: " + phoneInfo);
 	response.end();
 	console.log(phoneInfo);
 });
-
 
 app.get('/phoneInfo', function (req, res) {
 	 var placeholder
@@ -61,9 +56,7 @@ app.get('/calendar', function (req, res) {
 });
 
 
-
-
-
+/////  PARSE CALENDAR & COMPARE  /////
 function calendarResults(results) {
 	obj = JSON.parse(results); 
 	console.log(obj['start']);
@@ -79,26 +72,25 @@ function calendarResults(results) {
 	// console.log(date1);	
 }
 
-
-
-////  wrap up in node scheduler for delay wakeup check  //////////////////////////////
+/////  CHECK THE WEATHER  /////
 var forecast = new Forecast({
 	service:'forecast.io',
-	key: 'yourKey',
+	key: 'yourkey',
 	units: 'farenheit',
 	cache:false
 });
 
-function weathertest(lat,lon) {
+function weathertest(lat,lon, callback) {
 	forecast.get([lat,lon], function(err, weather){
 		if(err) return console.dir(err);
-
-		console.log(weather['currently']);
+		var probability = (weather['currently']['precipProbability']);
+		callback(probability);
 	});
 }
 
 
-/////  MTA arguments  /////
+
+/////  CHECK THE MTA  /////
 var train;
 var options = {
 	mode : 'json',
@@ -106,26 +98,37 @@ var options = {
 	args: '7'
 }
 
-function trainScraper(train) {
+// function trainScraper(train) {
+// 	var scraper = new PythonShell('scrape.py', options);
+// 		scraper.on('message', function(message){
+// 			var status = JSON.stringify(message['title']);
+// 			console.log(status);
+// 	  	});	
+// }
+
+
+function trainScraper(train, callback) {
 	var scraper = new PythonShell('scrape.py', options);
 		scraper.on('message', function(message){
 			var status = JSON.stringify(message['title']);
-			console.log(status);
+			// console.log(status);
+			callback(status);
 	  	});	
 }
-//////////////////////////////////////////////////////////////////////////////
 
 
-
-
-function delayCheck(lat,lon,train) {
-	trainScraper(train);
-	weathertest(lat,lon);
+function delayCheck(lat,lon,train) 
+	trainScraper(train,function(status){
+		console.log("status: " + status);
+	})
+	weathertest(lat,lon,function(probability){
+		console.log("probability: " + probability);
+ 	});
 }
 
 
-// var j = schedule.scheduleJob('1 1 * * *', function(){
-//     delayCheck();
+// var j = schedule.scheduleJob('* * * * *', function(){
+//     delayCheck(40.7127,-74.0059,7);
 // });
 
 
@@ -134,10 +137,6 @@ app.get('/train', function (req, res) {
 	res.send('checking for delays response');
 	delayCheck(40.7127,-74.0059,7);
 });
-
-
-
-
 
 
 
