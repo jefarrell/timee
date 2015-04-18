@@ -1,11 +1,11 @@
-
 var express = require('express');
-var app = express();
-var PythonShell = require('python-shell');
-var status = {}
 var Forecast = require('forecast')
-/////  MTA arguments  /////
-var train;
+var PythonShell = require('python-shell');
+var schedule = require('node-schedule');
+var app = express();
+var status = {}
+
+
 
 
 
@@ -16,84 +16,7 @@ var server = app.listen(3000, function () {
 });
 
 
-var newresults;
-app.get('/calendar', function (req, res) {
-  res.send('Calendar response');
-  getAllEventsChoreo.execute(
-	    getAllEventsInputs,
-	    function(results){
-	    	newresults = results.get_Response();
-	    	calendarResults(newresults);
-	    },
-	    function(error){
-	    	console.log(error.type);
-	    	console.log(error.message);
-	    }
-	);
-
-});
-
-function calendarResults(results) {
-	obj = JSON.parse(results); 
-
-	// for (var i=0;i<obj['items'].length;i++) {
-	// 	// console.log(obj['items'][i]['start']);
-	// 	console.log('hi');
-	// }
-
-	var date1 = Date.parse(obj.items[0].start.dateTime);
-	var date2 = Date.parse(obj.items[1].start.dateTime);
-	console.log(date1 < date2);
-	console.log(date1);
-	
-}
-
-////  wrap up in node scheduler for delay wakeup check  ////
-var forecast = new Forecast({
-	service:'forecast.io',
-	key: 'c1d4dde993f68cd4ecbee63ab39f699a',
-	units: 'farenheit',
-	cache:false
-});
-
-function weathertest(lat,lon) {
-	forecast.get([lat,lon], function(err, weather){
-		if(err) return console.dir(err);
-		console.log(weather);
-	});
-}
-
-var options = {
-	mode : 'json',
-	args : [train]
-}
-
-function trainScraper() {
-	var scraper = new PythonShell('scrape.py', options);
-		scraper.on('message', function(message){
-			console.log(message);
-	  	});
-}
-
-
-function delayCheck(lat,lon,train) {
-	var scraper = new PythonShell('scrape.py', options);
-	scraper.on('message', function(traindata){
-		console.log(traindata);
-  	});
-}
-
-//////////////////////////
-
-
-app.get('/train', function (req, res) {
-	res.send('checking for delays response');
-	// getWeatherData(40.7127,74.0059);
-	weathertest(40.7127,-74.0059);
-	// should run wakeup check here with results
-});
-
-
+/////  INFO FROM PHONE  /////
 var phoneInfo;
 
 app.get('/info/:info', function (request, response) {
@@ -104,6 +27,7 @@ app.get('/info/:info', function (request, response) {
 	response.end();
 	console.log(phoneInfo);
 });
+
 
 app.get('/phoneInfo', function (req, res) {
 	 var placeholder
@@ -119,6 +43,108 @@ app.get('/phoneInfo', function (req, res) {
 
 
 
+/////  CHECK CALENDAR EVENTS  /////
+var newresults;
+app.get('/calendar', function (req, res) {
+  res.send('Calendar response');
+  getNextEventChoreo.execute(
+	    getNextEventInputs,
+	    function(results){
+	    	newresults = results.get_Response();
+	    	calendarResults(newresults);
+	    },
+	    function(error){
+	    	console.log(error.type);
+	    	console.log(error.message);
+	    }
+	);
+});
+
+
+
+
+
+function calendarResults(results) {
+	obj = JSON.parse(results); 
+	console.log(obj['start']);
+	// for (var i=0;i<obj['items'].length;i++) {
+	// 	// console.log(obj['items'][i]['start']);
+	// 	console.log('hi');
+	// }
+
+	var startTime = Date.parse(obj.start.dateTime);
+	console.log(startTime);
+	//var date2 = Date.parse(obj.items[1].start.dateTime);
+	// console.log(date1 < date2);
+	// console.log(date1);	
+}
+
+
+
+////  wrap up in node scheduler for delay wakeup check  //////////////////////////////
+var forecast = new Forecast({
+	service:'forecast.io',
+	key: 'yourKey',
+	units: 'farenheit',
+	cache:false
+});
+
+function weathertest(lat,lon) {
+	forecast.get([lat,lon], function(err, weather){
+		if(err) return console.dir(err);
+
+		console.log(weather['currently']);
+	});
+}
+
+
+/////  MTA arguments  /////
+var train;
+var options = {
+	mode : 'json',
+	// args : [train]
+	args: '7'
+}
+
+function trainScraper(train) {
+	var scraper = new PythonShell('scrape.py', options);
+		scraper.on('message', function(message){
+			var status = JSON.stringify(message['title']);
+			console.log(status);
+	  	});	
+}
+//////////////////////////////////////////////////////////////////////////////
+
+
+
+
+function delayCheck(lat,lon,train) {
+	trainScraper(train);
+	weathertest(lat,lon);
+}
+
+
+// var j = schedule.scheduleJob('1 1 * * *', function(){
+//     delayCheck();
+// });
+
+
+
+app.get('/train', function (req, res) {
+	res.send('checking for delays response');
+	delayCheck(40.7127,-74.0059,7);
+});
+
+
+
+
+
+
+
+
+
+
+
 /////  Google Calendar Integration  /////
 
 //Initialize Temboo session
@@ -127,16 +153,22 @@ var session = new tsession.TembooSession("yourname", "yourapp", "yourid");
 
 var Google = require("temboo/Library/Google/Calendar");
 
-var getAllEventsChoreo = new Google.GetAllEvents(session);
 
-// Instantiate and populate the input set for the choreo
-var getAllEventsInputs = getAllEventsChoreo.newInputSet();
+
+ var getNextEventChoreo = new Google.GetNextEvent(session);
+
+// // Instantiate and populate the input set for the choreo
+ var getNextEventInputs = getNextEventChoreo.newInputSet();
+
+// // Set credential to use for execution
+getNextEventInputs.setCredential("GoogleCalendarAccount");
+
 
 // Set inputs
-getAllEventsInputs.set_ClientSecret("yoursecret");
-getAllEventsInputs.set_CalendarID("yourcalendarid");
-getAllEventsInputs.set_RefreshToken("yourrefreshtoken");
-getAllEventsInputs.set_ClientID("yourclientid");
+getNextEventInputs.set_ClientSecret("yoursecret");
+getNextEventInputs.set_CalendarID("yourcalendarid");
+getNextEventInputs.set_RefreshToken("yourrefreshtoken");
+getNextEventInputs.set_ClientID("yourclientid");
 
 /////  End Calendar  //////
 
