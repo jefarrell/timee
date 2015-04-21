@@ -1,4 +1,3 @@
-
 var express = require('express');
 var Forecast = require('forecast')
 var PythonShell = require('python-shell');
@@ -39,6 +38,7 @@ app.get('/phoneInfo', function (req, res) {
 
 
 /////  CHECK CALENDAR EVENTS  /////
+/////  NEEDS A TRY TO SEE IF THERE IS A NEXT EVENT  /////
 var newresults;
 app.get('/calendar', function (req, res) {
   res.send('Calendar response');
@@ -95,52 +95,50 @@ var train;
 var options = {
 	mode : 'json',
 	// args : [train]
-	args: '7'
+	args: '1'
 }
 
 // function trainScraper(train) {
 // 	var scraper = new PythonShell('scrape.py', options);
 // 		scraper.on('message', function(message){
-// 			var status = JSON.stringify(message['title']);
+// 			//var status = JSON.stringify(message['title']);
+// 			var status = JSON.stringify(message);
 // 			console.log(status);
 // 	  	});	
 // }
 
 
-function trainScraper(train, callback) {
+function trainScraper(callback) {
 	var scraper = new PythonShell('scrape.py', options);
 		scraper.on('message', function(message){
 			var status = JSON.stringify(message['title']);
-			// console.log(status);
+			console.log(JSON.stringify(message));
 			callback(status);
 	  	});	
 }
 
 
-function delayCheck(lat,lon,train) 
-	trainScraper(train,function(status){
+function delayCheck(lat,lon) {
+	trainScraper(function(status){
 		console.log("status: " + status);
 	})
+	//trainScraper(train);
 	weathertest(lat,lon,function(probability){
 		console.log("probability: " + probability);
  	});
 }
 
 
-// var j = schedule.scheduleJob('* * * * *', function(){
-//     delayCheck(40.7127,-74.0059,7);
-// });
+var j = schedule.scheduleJob('1 1 * * *', function(){
+    delayCheck(40.7127,-74.0059,7);
+});
 
 
 
 app.get('/train', function (req, res) {
 	res.send('checking for delays response');
-	delayCheck(40.7127,-74.0059,7);
+	delayCheck(40.7127,-74.0059);
 });
-
-
-
-
 
 
 
