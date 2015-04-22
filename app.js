@@ -1,3 +1,4 @@
+
 var express = require('express');
 var Forecast = require('forecast')
 var PythonShell = require('python-shell');
@@ -13,25 +14,27 @@ var server = app.listen(3000, function () {
 
 
 /////  INFO FROM PHONE  /////
+var incoming;
 var phoneInfo;
-app.get('/info/:info', function (request, response) {
-	phoneInfo  = request.params.info;
+app.get('/info/:info', function (req, res) {
+	incoming  = request.params.info;
 	//send a response to the client:
 	response.writeHead(200, {'Content-Type': 'text/html'});
-	response.write("You sent me: " + phoneInfo);
+	response.write("You sent me: " + incoming);
 	response.end();
-	console.log(phoneInfo);
+	console.log(incoming);
 });
 
 app.get('/phoneInfo', function (req, res) {
-	 var placeholder
-	 if (!phoneInfo) {
-	 	placeholder = "no info";
+	 if (!incoming) {
+	 	phoneInfo = "no info";
 	 } else {
-	 	placeholder = phoneInfo
+	 	phoneInfo = incoming
 	 }
-	 res.send(placeholder);
-	 console.log("info: " + placeholder)
+	 res.send(phoneInfo);
+	 console.log("info: " + phoneInfo)
+	 // parse the phone info here? 
+	 app.set('phoneInfo', phoneInfo);
 });
 
 
@@ -39,14 +42,24 @@ app.get('/phoneInfo', function (req, res) {
 
 /////  CHECK CALENDAR EVENTS  /////
 /////  NEEDS A TRY TO SEE IF THERE IS A NEXT EVENT  /////
-var newresults;
+//var newresults;
 app.get('/calendar', function (req, res) {
   res.send('Calendar response');
   getNextEventChoreo.execute(
 	    getNextEventInputs,
 	    function(results){
-	    	newresults = results.get_Response();
-	    	calendarResults(newresults);
+	    	var newresults = results.get_Response();
+	    	obj = JSON.parse(newresults);
+	    	var calTime = Date.parse(obj.start.dateTime);
+	    	console.log("calendar Time is: " + calTime)
+
+	    	var phoneTimes = req.app.get('phoneInfo');
+	    	console.log("testing: " + phoneTimes);
+
+	    	// Compare and send the times here;
+	    	// should I parse the phone info here?
+
+	    	
 	    },
 	    function(error){
 	    	console.log(error.type);
@@ -56,21 +69,15 @@ app.get('/calendar', function (req, res) {
 });
 
 
-/////  PARSE CALENDAR & COMPARE  /////
-function calendarResults(results) {
-	obj = JSON.parse(results); 
-	console.log(obj['start']);
-	// for (var i=0;i<obj['items'].length;i++) {
-	// 	// console.log(obj['items'][i]['start']);
-	// 	console.log('hi');
-	// }
+// /////  PARSE CALENDAR  /////  maybe not needed
+// function calendarResults(results, callback) {
+// 	obj = JSON.parse(results); 
+// 	console.log(obj['start']);
+// 	var startTime = Date.parse(obj.start.dateTime);
+// 	callback(startTime);
+// }
 
-	var startTime = Date.parse(obj.start.dateTime);
-	console.log(startTime);
-	//var date2 = Date.parse(obj.items[1].start.dateTime);
-	// console.log(date1 < date2);
-	// console.log(date1);	
-}
+
 
 /////  CHECK THE WEATHER  /////
 var forecast = new Forecast({
@@ -120,25 +127,42 @@ function trainScraper(callback) {
 
 function delayCheck(lat,lon) {
 	trainScraper(function(status){
-		console.log("status: " + status);
+		if (status[0] != "Current Status: Good Status") {
+			console.log("delay dude: " + status);
+		} else {
+			console.log("no delay dude")
+		}
 	})
-	//trainScraper(train);
+
 	weathertest(lat,lon,function(probability){
 		console.log("probability: " + probability);
+		if (probability > 0.75) {
+			console.log("weather delay");
+		} else {
+			console.log("no weather delay");
+		}
  	});
 }
 
 
-var j = schedule.scheduleJob('1 1 * * *', function(){
-    delayCheck(40.7127,-74.0059,7);
-});
+
+/////  CRON SCHEDULE TO RUN TEST  /////
+/////  Actually needs to happen on Arduino  /////
+// var j = schedule.scheduleJob('1 1 * * *', function(){
+//     delayCheck(40.7127,-74.0059,7);
+// });
 
 
 
-app.get('/train', function (req, res) {
+app.get('/delays', function (req, res) {
 	res.send('checking for delays response');
 	delayCheck(40.7127,-74.0059);
 });
+
+
+
+
+
 
 
 
