@@ -17,11 +17,11 @@ var server = app.listen(3000, function () {
 var incoming;
 var phoneInfo;
 app.get('/info/:info', function (req, res) {
-	incoming  = request.params.info;
+	incoming  = req.params.info;
 	//send a response to the client:
-	response.writeHead(200, {'Content-Type': 'text/html'});
-	response.write("You sent me: " + incoming);
-	response.end();
+	res.writeHead(200, {'Content-Type': 'text/html'});
+	res.write("You sent me: " + incoming);
+	res.end();
 	console.log(incoming);
 });
 
@@ -32,8 +32,10 @@ app.get('/phoneInfo', function (req, res) {
 	 	phoneInfo = incoming
 	 }
 	 res.send(phoneInfo);
-	 console.log("info: " + phoneInfo)
+	 console.log("info: " + phoneInfo);
 	 // parse the phone info here? 
+	 var split = phoneInfo.split(";");
+	 console.log("split: " + split);
 	 app.set('phoneInfo', phoneInfo);
 });
 
@@ -59,7 +61,7 @@ app.get('/calendar', function (req, res) {
 	    	// Compare and send the times here;
 	    	// should I parse the phone info here?
 
-	    	
+	    	//app.set earliest time 
 	    },
 	    function(error){
 	    	console.log(error.type);
@@ -69,13 +71,6 @@ app.get('/calendar', function (req, res) {
 });
 
 
-// /////  PARSE CALENDAR  /////  maybe not needed
-// function calendarResults(results, callback) {
-// 	obj = JSON.parse(results); 
-// 	console.log(obj['start']);
-// 	var startTime = Date.parse(obj.start.dateTime);
-// 	callback(startTime);
-// }
 
 
 
@@ -102,62 +97,85 @@ var train;
 var options = {
 	mode : 'json',
 	// args : [train]
-	args: '1'
+	args: 'D'
 }
 
-// function trainScraper(train) {
-// 	var scraper = new PythonShell('scrape.py', options);
-// 		scraper.on('message', function(message){
-// 			//var status = JSON.stringify(message['title']);
-// 			var status = JSON.stringify(message);
-// 			console.log(status);
-// 	  	});	
-// }
+
 
 
 function trainScraper(callback) {
 	var scraper = new PythonShell('scrape.py', options);
 		scraper.on('message', function(message){
-			var status = JSON.stringify(message['title']);
-			console.log(JSON.stringify(message));
+			var status = message;
+			//var status = JSON.stringify(message);
+			// var status = JSON.stringify(message['title']);
+			//console.log(JSON.stringify(message));
 			callback(status);
 	  	});	
 }
 
 
+var delays = [];
 function delayCheck(lat,lon) {
+	// delays = [null,null]
 	trainScraper(function(status){
-		if (status[0] != "Current Status: Good Status") {
-			console.log("delay dude: " + status);
+		var message = status['title'];
+		console.log(message);
+		var match = '"Current Status: Good Service"';
+		if (message.toLowerCase() === match.toLowerCase()) {
+		// if (status === match) {
+			//console.log("no delay");
+			delays[0] = 0;
+
 		} else {
-			console.log("no delay dude")
+
+			delays[0] = status;
+			//console.log("delay: " + status);
 		}
 	})
 
 	weathertest(lat,lon,function(probability){
-		console.log("probability: " + probability);
+		//console.log("probability: " + probability);
 		if (probability > 0.75) {
-			console.log("weather delay");
-		} else {
-			console.log("no weather delay");
+			delays[1] = 1;
+			//console.log("weather delay");
+		
+		} else { 
+
+			delays[1] = 0;
+			//console.log("no weather delay");
 		}
  	});
 }
 
 
 
-/////  CRON SCHEDULE TO RUN TEST  /////
-/////  Actually needs to happen on Arduino  /////
-// var j = schedule.scheduleJob('1 1 * * *', function(){
-//     delayCheck(40.7127,-74.0059,7);
-// });
 
 
 
-app.get('/delays', function (req, res) {
-	res.send('checking for delays response');
+app.get('/delay',function (req, res) {
 	delayCheck(40.7127,-74.0059);
+	res.end();
 });
+
+app.get('/arduinoCheck', function (req, res) {
+	res.send('request from arduino');
+	//delayCheck(40.7127,-74.0059);
+	// delayCheck(40.7127,-74.0059,function(delays){
+	// 	console.log("delays test: " + delays);
+	// });
+	if (delays[0] =! 0) {
+		delays[0] = 1;
+		
+	}
+	
+});
+
+app.get('/phoneCheck', function (req,res){
+	res.send('request from phone');
+	// delayCheck(40.7127,-74.0059);
+	console.log(delays);
+})
 
 
 
