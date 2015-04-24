@@ -44,7 +44,6 @@ app.get('/phoneInfo', function (req, res) {
 
 /////  CHECK CALENDAR EVENTS  /////
 /////  NEEDS A TRY TO SEE IF THERE IS A NEXT EVENT  /////
-//var newresults;
 app.get('/calendar', function (req, res) {
   res.send('Calendar response');
   getNextEventChoreo.execute(
@@ -77,7 +76,7 @@ app.get('/calendar', function (req, res) {
 /////  CHECK THE WEATHER  /////
 var forecast = new Forecast({
 	service:'forecast.io',
-	key: 'yourkey',
+	key: 'YOURKEY',
 	units: 'farenheit',
 	cache:false
 });
@@ -91,7 +90,7 @@ function weathertest(lat,lon, callback) {
 }
 
 
-
+// Need to update with info from phone
 /////  CHECK THE MTA  /////
 var train;
 var options = {
@@ -102,7 +101,7 @@ var options = {
 
 
 
-
+/////  MTA WEBSCRAPER  /////
 function trainScraper(callback) {
 	var scraper = new PythonShell('scrape.py', options);
 		scraper.on('message', function(message){
@@ -114,7 +113,7 @@ function trainScraper(callback) {
 	  	});	
 }
 
-
+/////  CHECK WEATHER AND TRAIN FOR DELAYS  //////
 var delays = [];
 function delayCheck(lat,lon) {
 	// delays = [null,null]
@@ -154,10 +153,13 @@ function delayCheck(lat,lon) {
 
 
 app.get('/delay',function (req, res) {
+	// Need to update with info from phone
 	delayCheck(40.7127,-74.0059);
 	res.end();
 });
 
+
+/////  ROUTE FOR ARDUINO YUN  /////
 app.get('/arduinoCheck', function (req, res) {
 	res.send('request from arduino');
 	//delayCheck(40.7127,-74.0059);
@@ -171,13 +173,12 @@ app.get('/arduinoCheck', function (req, res) {
 	
 });
 
+/////  ROUTE FOR PHONE APP  /////
 app.get('/phoneCheck', function (req,res){
 	res.send('request from phone');
 	// delayCheck(40.7127,-74.0059);
 	console.log(delays);
 })
-
-
 
 
 
