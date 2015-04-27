@@ -2,7 +2,6 @@
 var express = require('express');
 var Forecast = require('forecast')
 var PythonShell = require('python-shell');
-var schedule = require('node-schedule');
 var app = express();
 
 
@@ -51,11 +50,19 @@ app.get('/calendar', function (req, res) {
 	    function(results){
 	    	var newresults = results.get_Response();
 	    	obj = JSON.parse(newresults);
-	    	var calTime = Date.parse(obj.start.dateTime);
-	    	console.log("calendar Time is: " + calTime)
 
-	    	var phoneTimes = req.app.get('phoneInfo');
-	    	console.log("testing: " + phoneTimes);
+	    	// Get the next calendar event time, split it down to the hour
+  			var tempTime = obj.start.dateTime.split('T')[1];
+  			var calTime = tempTime.split('-')[0].split(':')[0]-1;
+  			console.log("next calendar time : " + calTime);
+
+
+	    	var fromPhone = req.app.get('phoneInfo');
+	    	console.log("from phone: " + fromPhone);
+	    	phoneSplits = fromPhone.split(';');
+	    	phoneSplits[0] = phoneAlarm;
+	    	phoneSplits[1] = extraTime;
+	    	phoneSplits[2] = trainLine;
 
 	    	// Compare and send the times here;
 	    	// should I parse the phone info here?
@@ -134,13 +141,10 @@ function delayCheck(lat,lon) {
 	})
 
 	weathertest(lat,lon,function(probability){
-		//console.log("probability: " + probability);
 		if (probability > 0.75) {
 			delays[1] = 1;
 			//console.log("weather delay");
-		
 		} else { 
-
 			delays[1] = 0;
 			//console.log("no weather delay");
 		}
@@ -150,7 +154,7 @@ function delayCheck(lat,lon) {
 
 
 
-
+//  Need to update with lat/lon from phone  //
 
 app.get('/delay',function (req, res) {
 	// Need to update with info from phone
@@ -179,7 +183,6 @@ app.get('/phoneCheck', function (req,res){
 	// delayCheck(40.7127,-74.0059);
 	console.log(delays);
 })
-
 
 
 

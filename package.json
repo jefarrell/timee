@@ -6,7 +6,6 @@
   "dependencies": {
     "express": "^4.12.3",
     "forecast": "^0.2.1",
-    "node-schedule": "^0.2.6",
     "python-shell": "^0.0.3",
     "temboo": "^2.8.0"
   },
