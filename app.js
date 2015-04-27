@@ -12,6 +12,31 @@ var server = app.listen(3000, function () {
 });
 
 
+/////  INFO FROM CLOCK  /////
+var temp;
+var clockInfo;
+app.get('/info/:clockInfo', function (req, res) {
+	temp  = req.params.info;
+	//send a response to the client:
+	res.writeHead(200, {'Content-Type': 'text/html'});
+	res.write("You sent me: " + temp);
+	res.end();
+	console.log(temp);
+});
+
+app.get('/clockInfo', function (req, res) {
+	 if (!incoming) {
+	 	clockInfo = "no info";
+	 } else {
+	 	clockInfo = temp
+	 }
+	 res.send(clockInfo);
+	 console.log("info from clock: " + clockInfo);
+	 app.set('clockInfo', clockInfo);
+});
+
+
+
 /////  INFO FROM PHONE  /////
 var incoming;
 var phoneInfo;
