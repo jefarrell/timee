@@ -15,16 +15,16 @@ var server = app.listen(3000, function () {
 /////  INFO FROM CLOCK  /////
 var temp;
 var clockInfo;
-app.get('/info/:clockInfo', function (req, res) {
+app.get('/clockInfo/:clockInfo', function (req, res) {
 	temp  = req.params.info;
 	//send a response to the client:
 	res.writeHead(200, {'Content-Type': 'text/html'});
-	res.write("You sent me: " + temp);
+	res.write("You're sending: " + temp);
 	res.end();
 	console.log(temp);
 });
 
-app.get('/clockInfo', function (req, res) {
+app.get('/fromClock', function (req, res) {
 	 if (!incoming) {
 	 	clockInfo = "no info";
 	 } else {
@@ -37,17 +37,21 @@ app.get('/clockInfo', function (req, res) {
 
 
 
+
+
 /////  INFO FROM PHONE  /////
 var incoming;
 var phoneInfo;
-app.get('/info/:info', function (req, res) {
-	incoming  = req.params.info;
+app.get('/info/:test/', function (req, res) {
+	incoming  = req.params.test;
+	console.log("req: " + req.params.test);
 	//send a response to the client:
 	res.writeHead(200, {'Content-Type': 'text/html'});
-	res.write("You sent me: " + incoming);
+	res.write("You're sending: " + incoming);
 	res.end();
-	console.log(incoming);
+	
 });
+
 
 app.get('/phoneInfo', function (req, res) {
 	 if (!incoming) {
@@ -58,9 +62,19 @@ app.get('/phoneInfo', function (req, res) {
 	 res.send(phoneInfo);
 	 console.log("info: " + phoneInfo);
 	 // parse the phone info here? 
-	 var split = phoneInfo.split(";");
-	 console.log("split: " + split);
-	 app.set('phoneInfo', phoneInfo);
+	 	var splitter = phoneInfo.split(";");
+	 	console.log("split: " + splitter);
+	 	app.set('phoneInfo', splitter);
+
+
+
+
+
+	 // phoneTest = '15:00;40;7';
+	 // var splitter = phoneTest.split(";")
+	 // app.set('phoneInfo', splitter[2]);
+	 // console.log(splitter[1]);
+	 	
 });
 
 
@@ -76,19 +90,25 @@ app.get('/calendar', function (req, res) {
 	    	var newresults = results.get_Response();
 	    	obj = JSON.parse(newresults);
 
-	    	// Get the next calendar event time, split it down to the hour
+	    // Get the next calendar event time, split it down to the hour
   			var tempTime = obj.start.dateTime.split('T')[1];
   			var calTime = tempTime.split('-')[0].split(':')[0]-1;
   			console.log("next calendar time : " + calTime);
 
-
-	    	var fromPhone = req.app.get('phoneInfo');
+  		/////  test parsing pseudocode  /////
+	    	var phonePlaceholder = req.app.get('phoneInfo');
+	    	var placeholder2 = JSON.stringify(phonePlaceholder);
+	    	var fromPhone = placeholder2.split(',');
 	    	console.log("from phone: " + fromPhone);
-	    	phoneSplits = fromPhone.split(';');
-	    	phoneSplits[0] = phoneAlarm;
-	    	phoneSplits[1] = extraTime;
-	    	phoneSplits[2] = trainLine;
-
+	    	
+	    	var phoneAlarm = fromPhone[0];
+	    	var extraTime = fromPhone[1];
+	    	var lat = fromPhone[2];
+	    	var lon = fromPhone[3];
+	    	var trainLine = fromPhone[4][0];
+	    	console.log("loc:" + lat + ", " + lon);
+	    	console.log("train: " + trainLine);
+	    	app.set('trainName', trainLine);
 	    	// Compare and send the times here;
 	    	// should I parse the phone info here?
 
@@ -124,22 +144,28 @@ function weathertest(lat,lon, callback) {
 
 // Need to update with info from phone
 /////  CHECK THE MTA  /////
-var train;
-var options = {
-	mode : 'json',
-	// args : [train]
-	args: 'D'
-}
+var tester = app.get('phoneInfo');
+
+
 
 
 
 /////  MTA WEBSCRAPER  /////
 function trainScraper(callback) {
+	// var userTrain = app.get('trainName');
+	//console.log(userTrain);
+	//console.log(typeof(userTrain));
+	var options = {
+	mode : 'json',
+	args:'C'
+	//args: userTrain
+}
+
 	var scraper = new PythonShell('scrape.py', options);
 		scraper.on('message', function(message){
 			var status = message;
 			//var status = JSON.stringify(message);
-			// var status = JSON.stringify(message['title']);
+			//var status = JSON.stringify(message['title']);
 			//console.log(JSON.stringify(message));
 			callback(status);
 	  	});	
@@ -151,27 +177,27 @@ function delayCheck(lat,lon) {
 	// delays = [null,null]
 	trainScraper(function(status){
 		var message = status['title'];
-		console.log(message);
-		var match = '"Current Status: Good Service"';
-		if (message.toLowerCase() === match.toLowerCase()) {
+		console.log("status title: " + message);
+		var match = "Current Status: Good Service";
+		if (message.toLowerCase() == match.toLowerCase()) {
 		// if (status === match) {
-			//console.log("no delay");
+			console.log("no train delay");
 			delays[0] = 0;
 
 		} else {
 
-			delays[0] = status;
-			//console.log("delay: " + status);
+			var delayMessage = status['title']
+			console.log("train delay: " + delayMessage);
 		}
 	})
 
 	weathertest(lat,lon,function(probability){
 		if (probability > 0.75) {
 			delays[1] = 1;
-			//console.log("weather delay");
+			console.log("weather delay");
 		} else { 
 			delays[1] = 0;
-			//console.log("no weather delay");
+			console.log("no weather delay");
 		}
  	});
 }
@@ -183,7 +209,14 @@ function delayCheck(lat,lon) {
 
 app.get('/delay',function (req, res) {
 	// Need to update with info from phone
+	var hold = app.get('splitter')
+	console.log(hold);
+
+	// var splitTest1 = splitTest[1];
+	//console.log("delay log: " + app.get('splitter'[1]));
+	//console.log(splitTest1);
 	delayCheck(40.7127,-74.0059);
+	//delayCheck(app.get('splitter[2]'),app.get('splitter[3]'));
 	res.end();
 });
 
@@ -206,8 +239,9 @@ app.get('/arduinoCheck', function (req, res) {
 app.get('/phoneCheck', function (req,res){
 	res.send('request from phone');
 	// delayCheck(40.7127,-74.0059);
-	console.log(delays);
+	console.log("delays: " + delays);
 })
+
 
 
 
