@@ -64,7 +64,7 @@ app.get('/phoneInfo', function (req, res) {
 	 // parse the phone info here? 
 	 	var splitter = phoneInfo.split(";");
 	 	console.log("split: " + splitter);
-	 	app.set('phoneInfo', splitter);
+	 	app.set('phoneInfo', phoneInfo);
 
 
 
@@ -152,13 +152,12 @@ var tester = app.get('phoneInfo');
 
 /////  MTA WEBSCRAPER  /////
 function trainScraper(callback) {
-	// var userTrain = app.get('trainName');
-	//console.log(userTrain);
-	//console.log(typeof(userTrain));
+	var placeholder = app.get('phoneInfo');
+	var userTrain = placeholder.split(",")[4];
+	console.log("trainscraper train: " + userTrain);
 	var options = {
 	mode : 'json',
-	args:'C'
-	//args: userTrain
+	args: userTrain
 }
 
 	var scraper = new PythonShell('scrape.py', options);
@@ -205,18 +204,17 @@ function delayCheck(lat,lon) {
 
 
 
-//  Need to update with lat/lon from phone  //
+
 
 app.get('/delay',function (req, res) {
 	// Need to update with info from phone
-	var hold = app.get('splitter')
-	console.log(hold);
+	var hold = req.app.get('phoneInfo')
+	holdParse = hold.split(",");
+	var lat = holdParse[2];
+	var lon = holdParse[3];
 
-	// var splitTest1 = splitTest[1];
-	//console.log("delay log: " + app.get('splitter'[1]));
-	//console.log(splitTest1);
-	delayCheck(40.7127,-74.0059);
-	//delayCheck(app.get('splitter[2]'),app.get('splitter[3]'));
+	//delayCheck(40.7127,-74.0059);
+	delayCheck(lat,lon);
 	res.end();
 });
 
@@ -241,6 +239,11 @@ app.get('/phoneCheck', function (req,res){
 	// delayCheck(40.7127,-74.0059);
 	console.log("delays: " + delays);
 })
+
+
+
+
+
 
 
 
